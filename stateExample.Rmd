@@ -1,0 +1,37 @@
+---
+title: "State Examples"
+author: "Craig Savage"
+date: "28/05/2021"
+output: html_document
+params: 
+    jobsData: NULL
+---
+
+# Overview {.tabset}
+
+Use of tabs is possible in HTML documents:
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, comment='', results='asis'}
+makeStateSlide <- function( stateData
+                            , templateRMD='stateChild.Rmd' ){
+  stateEnv <- new.env()
+  assign( 'stateData', stateData, env=stateEnv )
+  stateSlide <- knit_child( templateRMD
+                            , envir=stateEnv
+                            , options=list( output.dir='./' )
+                            , quiet=TRUE )
+  return( stateSlide )
+}
+
+jobsSA4 <- params$jobsData
+subList <- split( jobsSA4, list( jobsSA4$bigCity, jobsSA4$STE_NAME16 ), drop=TRUE )
+
+stateRMD <- map( subList, ~makeStateSlide( stateData=. ) )
+
+cat( unlist( stateRMD ), sep='\n' )
+
+```
+
+
+
+

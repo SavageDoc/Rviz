@@ -1,0 +1,10 @@
+```{r echo=FALSE, warning=FALSE, message=FALSE, comment='', results='asis'}
+cat( '##', ifelse( stateData$bigCity[1], word( stateData$SA4_NAME16[1] ), stateData$STE_NAME16[1] )
+       , '\n')
+
+hchart( stateData
+        , type='line'
+        , hcaes( x=Date, y=Index, color=SA4_NAME16, group=SA4_NAME16 ) )
+
+```
+

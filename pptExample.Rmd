@@ -1,0 +1,16 @@
+---
+title: "Automated Forecast Plot"
+author: "Craig Savage"
+date: "25/05/2021"
+output: powerpoint_presentation
+params:
+  forecastPlot: NA
+---
+
+
+## Slide with Plot
+
+```{r pressure, echo=FALSE}
+params$forecastPlot
+```
+
