@@ -129,6 +129,9 @@ sa4_2016@data <- left_join( sa4_2016@data, fullPopData )
 - Visualise impact of COVID on Australian jobs/wages
     + Data from the Australian Bureau of Statistics
     + Geographic data from the ASGS (Australian Statistical Geography Standard)
+- Slides available from GitHub
+    + You'll need `R` and packages installed (including `ASGS`!)
+    + `RStudio` recommended....
     
 ## Data
 
@@ -221,7 +224,13 @@ observeEvent( input$go, render( './pptExample.Rmd'
 
 ## Maps with `leaflet`
 
-- Leaflet is a javascript package (`Leaflet.js`) which has an API to R.
+- `Leaflet` is a javascript package (`Leaflet.js`) which has an API to `R`.
+- Use of the `dplyr` pipe (`%>%` pronounced *then*) to build maps
+    + Note the pipe instead of adding with `+` from `ggplot`! 
+    + Other JS libraries use the pipe
+    + `highcharts` and `datatable` (or `DT`) will be shown later
+- Pass configuration arguments via **lists**.
+
 
 ## Step 1 & 2: Create the map
 
@@ -280,9 +289,17 @@ renderLeaflet( leafletJobs )
 
 ## Basics
 
-## Extra Slides
+- Allows for combination of written text and code *chunks*
+- `rmarkdown` designed for `R`, can use `python`, `SAS`, other engines with extensions
+- Document outputs include:
+    + `ioslides` (like this!)
+    + HTML document (example provided)
+    + PPT (from demo), Word **requires PowerPoint/Word**
+    + PDF (with LaTex/MikTex)
 
-```{r results='asis', comment='', warning=FALSE, message=FALSE}
+## Example HTML Document
+
+```{r results='hide', comment='', warning=FALSE, message=FALSE}
 # Add a "bigCity" field to our data
 jobsSA4 <- jobsSA4 %>% 
   mutate( bigCity=(startsWith( SA4_NAME16, 'Melbourne' ) |
@@ -312,8 +329,118 @@ render( input='./stateExample.Rmd'
 
 ## Example
 
-```{r shinyLeaflet, eval=TRUE}
+```{r shinyDemo, eval=TRUE}
+## Extension of ggplot example:
+#     -- highcharter time series of historical data
+#     -- draggable points at the end of the series
+#     -- updates forecast model & ggplot
 
+## Functions for feedback of highchart to server back-end ----
+fnHC <- "function(){
+console.log('Category: ' + this.category + ', value: ' + this.y + ', series: ' + this.series.name);
+ds = this.series.data.map(function(e){ return {x: e.x, y: e.y  }  }); 
+Shiny.onInputChange('hcMove', {category: this.category, name: this.series.name, data: ds, type: this.series.type})
+}"
+
+historicalData <- jobsOz %>%
+  mutate( Source='Historical'
+          , Week=row_number() ) %>%
+  filter( Date > ymd( 20210101 ) ) 
+
+model0 <- auto.arima( jobsOz$meanIndex )
+nextData <- data.frame( STE_NAME16='Australia'
+                        , Date=max( historicalData$Date ) + weeks(1:12)
+                        , forecast( model0, h=12 )
+                        , Source='Expert' ) %>%
+  mutate( meanIndex=Point.Forecast
+          , Week=row_number() + nrow( historicalData )
+  ) %>%
+  select( STE_NAME16, Date, meanIndex, Source )
+
+plotData <- bind_rows( historicalData, nextData ) %>%
+  mutate( Week=row_number() )
+
+forecastData <- forecast( plotData$meanIndex, h=12, model=model0 )
+
+shinyApp( ui =fluidPage(
+  h2("Interactive Forecasts"),
+  
+  # Three rows, with 2 charts side-by-side.
+  fluidRow(
+    column(width = 6, highchartOutput("hcMovable")),
+    column(width = 6, plotOutput("ggForecast"))
+  )
+)
+, server=function(input, output) {
+  
+  output$hcMovable <- renderHighchart({
+    nextData <- getNextData()
+    plotData <- bind_rows( historicalData, nextData ) %>%
+      mutate( Week=row_number() )
+    
+    hc <- highchart() %>%
+      hc_add_series(data = plotData %>% filter( Source == 'Historical')
+                    , type = "line"
+                    , hcaes( x=Week, y=meanIndex ) 
+                    , name = "Historical"
+                    , color='black') %>%
+      hc_add_series( data=plotData %>% filter( Source == 'Expert')
+                     , type='scatter'
+                     , hcaes( x=Week, y=meanIndex )
+                     , name='Future'
+                     # Note the draggableY option
+                     , dragDrop=list( draggableY=TRUE ) ) %>%
+      hc_plotOptions(
+        series = list(
+          cursor = "pointer",
+          point = list(
+            events = list(
+              click = JS(fnHC),
+              drop = JS(fnHC)
+            )
+          )
+        )
+      ) %>% 
+      hc_tooltip( enabled = FALSE )
+
+    hc 
+  })
+  
+  getNextData <- reactive({
+    inputaux <- input$hcMove
+    
+    if ( !is.null(inputaux) ){
+      inputaux$data <- map_df(inputaux$data
+                              , as_data_frame)
+      
+      nextData$meanIndex <- inputaux$data$y
+    }
+    
+    return( nextData )
+  })
+  
+  output$ggForecast <- renderPlot({
+    nextData <- getNextData()
+    updateData <- bind_rows( historicalData, nextData )
+    
+    forecastModel <- auto.arima( updateData$meanIndex )
+    forecastData <- forecast( forecastModel, h=20, level=c(25, 50) )
+    
+    plotData <- updateData %>%
+      arrange( Date ) %>%
+      mutate( Week=row_number() )
+    
+    forecastPlot <- ggplot( plotData, aes( x=Week, y=meanIndex, shape=Source ) ) +
+      geom_line( ) +
+      geom_point() +
+      autolayer( forecastData, colour='blue', showgap=FALSE ) +
+      labs( x='Week'
+            , y='Wage Index'
+            , title='Aggregated plot'
+            , subtitle='Historical data with Expert Augmentation' )
+    forecastPlot
+  })
+})
 ```
 
 ## Differences between `rmarkdown` and `shiny`
@@ -340,6 +467,10 @@ hc1 <- hchart( sa4Data@data
 
 hc1
 ```
+
+## Confession {.flexbox .vcenter}
+
+![](./confessionMeme.jpg)
 
 ## Backgrounds
 
@@ -383,3 +514,11 @@ hcPokemon <- hchart( sa4Data@data
 
 hcPokemon
 ```
+
+## Evolution of Visualisation {.flexbox .vcenter}
+
+![](56dwer.jpg){height="400px" width="200px"}
+
+# Thank you
+
+# Questions?

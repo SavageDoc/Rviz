@@ -2,9 +2,30 @@
 cat( '##', ifelse( stateData$bigCity[1], word( stateData$SA4_NAME16[1] ), stateData$STE_NAME16[1] )
        , '\n')
 
-hchart( stateData
-        , type='line'
-        , hcaes( x=Date, y=Index, color=SA4_NAME16, group=SA4_NAME16 ) )
+# Make a data table (DT) with the latest info and a sparkline historical graph
+minIndex <- min( stateData$Index )
+maxIndex <- max( stateData$Index )
 
+dtData <- stateData %>%
+  group_by( SA4_NAME16 ) %>%
+  summarise( currentIndex=last( Index, order_by=Date )
+             , historicalIndex=spk_chr( Index
+                                        , type='line'
+                                        , chartRangeMin=minIndex
+                                        , chartRangeMax=maxIndex
+                                        , lineColor='black'
+                                        , fillColor=NULL ) )
+DT::datatable( dtData
+               , rownames = FALSE
+               , escape=FALSE
+               , options = list(
+                 paging = FALSE
+                , fnDrawCallback = htmlwidgets::JS(
+                'function(){
+                  HTMLWidgets.staticRender();
+                }') 
+                )
+               )%>%
+  spk_add_deps()
 ```
 

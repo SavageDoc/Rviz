@@ -2,16 +2,34 @@
 title: "State Examples"
 author: "Craig Savage"
 date: "28/05/2021"
-output: html_document
+output: 
+    html_document:
+      code_folding: hide
 params: 
     jobsData: NULL
 ---
 
 # Overview {.tabset}
 
+Below is an example of a `highcharter` graph.
+
+```{r exPlot, echo=TRUE, warning=FALSE, message=FALSE, results='asis'}
+statePlotData <- params$jobsData %>%
+  group_by( STE_NAME16, Date ) %>%
+  summarise( meanIndex=mean( Index ), .groups='drop' )
+
+hcState <- hchart( statePlotData
+                   , type='line' 
+                   , hcaes( x=Date, y=meanIndex, color=STE_NAME16, group=STE_NAME16 ) ) %>%
+  hc_title(text='State-level time series of wage indices' ) %>%
+  hc_tooltip( table=TRUE, valueDecimals=2 )
+
+hcState
+```
+
 Use of tabs is possible in HTML documents:
 
-```{r echo=FALSE, warning=FALSE, message=FALSE, comment='', results='asis'}
+```{r echo=TRUE, warning=FALSE, message=FALSE, comment='', results='asis'}
 makeStateSlide <- function( stateData
                             , templateRMD='stateChild.Rmd' ){
   stateEnv <- new.env()
