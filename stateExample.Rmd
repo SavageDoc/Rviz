@@ -1,17 +1,20 @@
 ---
 title: "State Examples"
 author: "Craig Savage"
-date: "28/05/2021"
+date: "25/05/2021"
 output: 
     html_document:
       code_folding: hide
+      highlight: espresso
 params: 
     jobsData: NULL
 ---
 
 # Overview {.tabset}
 
-Below is an example of a `highcharter` graph.
+Below is an example of a `highcharter` graph[^1].
+
+[^1]: Use of [Highcharts](https://www.highcharts.com/) for commercial or government purposes requires a [license](https://www.highcharts.com/download/).
 
 ```{r exPlot, echo=TRUE, warning=FALSE, message=FALSE, results='asis'}
 statePlotData <- params$jobsData %>%
@@ -20,7 +23,7 @@ statePlotData <- params$jobsData %>%
 
 hcState <- hchart( statePlotData
                    , type='line' 
-                   , hcaes( x=Date, y=meanIndex, color=STE_NAME16, group=STE_NAME16 ) ) %>%
+                   , hcaes( x=Date, y=meanIndex, group=STE_NAME16 ) ) %>%
   hc_title(text='State-level time series of wage indices' ) %>%
   hc_tooltip( table=TRUE, valueDecimals=2 )
 

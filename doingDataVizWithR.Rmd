@@ -1,12 +1,12 @@
 ---
 title: "Doing Data Viz With R"
 author: "Craig Savage"
-date: "28 May 2021"
+date: "25 May 2021"
 runtime: shiny
 output: 
   ioslides_presentation: 
     logo: D:/Documents/Doc Savage Solutions/Doc_SS_White-bg.png
-    highlight: espresso
+    highlight: breezedark
 ---
 
 ```{r setup, include=FALSE}
@@ -119,7 +119,7 @@ fullPopData <- map_dfr( sheetIndex, ~getPopData( sheetNum = . ) )
 sa4_2016@data <- left_join( sa4_2016@data, fullPopData ) 
 ```
 
-## Outline
+## Outline {.smaller}
 
 - Demonstrate different data visualisation techniques in R including:
     + `ggplot`     
@@ -129,7 +129,8 @@ sa4_2016@data <- left_join( sa4_2016@data, fullPopData )
 - Visualise impact of COVID on Australian jobs/wages
     + Data from the Australian Bureau of Statistics
     + Geographic data from the ASGS (Australian Statistical Geography Standard)
-- Slides available from GitHub
+- [Slides available from GitHub:](https://github.com/SavageDoc/Rviz) 
+    + https://github.com/SavageDoc/Rviz
     + You'll need `R` and packages installed (including `ASGS`!)
     + `RStudio` recommended....
     
@@ -150,6 +151,20 @@ sa4_2016@data <- left_join( sa4_2016@data, fullPopData )
 - Downloaded data is not tidy - should have a column named "Date" with the current column labels as values
    + Convert with `tidyverse` verbs to put the data in long format `pivot_longer`
    + Separate number:name pairs into separate columns
+
+## Primary Goals
+
+- Demonstrate several aspects of visualisation with `R`
+  + Focus on showcasing different capabilities for *visualisation* not *data science*!
+  + Brief explanation of code to generate the visualisation
+- Concepts:
+  + Interface from `R` to JS
+  + Printable vs HTML
+  + Pre-computed vs Dynamic
+
+## Secondary Goal {.flexbox .vcenter}
+
+![](https://media.giphy.com/media/VJ65UILXNGYRCTsOQM/giphy.gif)
    
 # Plot overview
 
@@ -224,7 +239,7 @@ observeEvent( input$go, render( './pptExample.Rmd'
 
 ## Maps with `leaflet`
 
-- `Leaflet` is a javascript package (`Leaflet.js`) which has an API to `R`.
+- Package `leaflet` accesses javascript (`Leaflet.js`) which has an API to `R`.
 - Use of the `dplyr` pipe (`%>%` pronounced *then*) to build maps
     + Note the pipe instead of adding with `+` from `ggplot`! 
     + Other JS libraries use the pipe
@@ -343,8 +358,7 @@ Shiny.onInputChange('hcMove', {category: this.category, name: this.series.name, 
 }"
 
 historicalData <- jobsOz %>%
-  mutate( Source='Historical'
-          , Week=row_number() ) %>%
+  mutate( Source='Historical' ) %>%
   filter( Date > ymd( 20210101 ) ) 
 
 model0 <- auto.arima( jobsOz$meanIndex )
@@ -379,7 +393,7 @@ shinyApp( ui =fluidPage(
       mutate( Week=row_number() )
     
     hc <- highchart() %>%
-      hc_add_series(data = plotData %>% filter( Source == 'Historical')
+      hc_add_series(data=plotData %>% filter( Source == 'Historical' )
                     , type = "line"
                     , hcaes( x=Week, y=meanIndex ) 
                     , name = "Historical"
@@ -411,7 +425,7 @@ shinyApp( ui =fluidPage(
     
     if ( !is.null(inputaux) ){
       inputaux$data <- map_df(inputaux$data
-                              , as_data_frame)
+                              , as_tibble)
       
       nextData$meanIndex <- inputaux$data$y
     }
@@ -457,7 +471,6 @@ hc1 <- hchart( sa4Data@data
         , type='scatter'
         , hcaes( x=Pop
                  , y=Index
-                 , color=STE_NAME16
                  , group=STE_NAME16
                  , name=STE_NAME16 ) ) %>% 
   hc_tooltip( pointFormat=paste( '{point.SA4_NAME16} in {point.STE_NAME16}<br/> 
@@ -519,6 +532,23 @@ hcPokemon
 
 ![](56dwer.jpg){height="400px" width="200px"}
 
+## Evolution of Visualisation {.flexbox .vcenter}
+
+![](https://media.giphy.com/media/VJ65UILXNGYRCTsOQM/giphy.gif)
+
 # Thank you
 
 # Questions?
+
+## Resources {.smaller}
+
+- [Code (`rmarkdown`) for this presentation](https://github.com/SavageDoc/Rviz)
+- [Cheat sheets for R](https://www.rstudio.com/resources/cheatsheets/)
+- [*R for Data Science* (online)](https://r4ds.had.co.nz/)
+- [Leaflet for R](https://rstudio.github.io/leaflet/)
+- [*R Markdown: The Definitive Guide* (online)](https://bookdown.org/yihui/rmarkdown/)
+- [*Mastering Shiny* (online)](https://mastering-shiny.org/index.html)
+- [Data, Code and Visualisation (blog by `highcharter` author, Joshua Kunst)](https://jkunst.com/blog/)
+
+
+
