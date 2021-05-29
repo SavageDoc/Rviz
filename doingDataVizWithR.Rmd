@@ -42,6 +42,7 @@ library( sparkline )
 # ASGS for SA3/SA4 access for Australian geography
 # NB: I've sourced the data rather than loading the package
 sa4_2016 <- ASGS::SA4_2016
+
 # Weekly wage indices ----
 # SA4
 jobsSA4 <- read_excel( './jobReport.xlsx'
@@ -66,6 +67,7 @@ jobsState <- jobsSA4 %>%
   group_by( STE_NAME16, Date ) %>%
   summarise( meanIndex=mean( Index )
              , .groups='drop' )
+
 # Australia-wide data
 jobsOz <- jobsState %>%
   group_by( STE_NAME16='Australia', Date ) %>%
@@ -165,7 +167,9 @@ sa4_2016@data <- left_join( sa4_2016@data, fullPopData )
 ## Secondary Goal {.flexbox .vcenter}
 
 ![](https://media.giphy.com/media/VJ65UILXNGYRCTsOQM/giphy.gif)
-   
+
+# Code: Data Wrangling 
+
 # Plot overview
 
 ## First example: `ggplot`
@@ -235,6 +239,8 @@ observeEvent( input$go, render( './pptExample.Rmd'
               )
 ```
 
+# Code: Initial Plots
+
 # Maps
 
 ## Maps with `leaflet`
@@ -300,6 +306,8 @@ leafletJobs <- leaflet( sa4Data ) %>%
 renderLeaflet( leafletJobs )
 ```
 
+# Code: Maps
+
 # Reporting with `rmarkdown`
 
 ## Basics
@@ -329,6 +337,8 @@ render( input='./stateExample.Rmd'
 ```
 
 <iframe src='./stateExample.html' width='400' height='300'></iframe>
+
+# Code: `rmarkdown`
 
 # Interactions with `shiny`
 
@@ -462,6 +472,8 @@ shinyApp( ui =fluidPage(
 - `rmarkdown` is *pre-computed* - multiple graphs, tabs, navbars, etc. but information underlying them is static
 - `shiny` allows for inputs & outputs to *dynamically* change graphs, tables, data, etc.
 
+# Code: `shiny` Example
+
 # Conclusions
 
 ## Data Visualisation
@@ -530,25 +542,26 @@ hcPokemon
 
 ## Evolution of Visualisation {.flexbox .vcenter}
 
-![](56dwer.jpg){height="400px" width="200px"}
+![](expBrain1.jpg){height="400px" width="200px"}
 
 ## Evolution of Visualisation {.flexbox .vcenter}
 
 ![](https://media.giphy.com/media/VJ65UILXNGYRCTsOQM/giphy.gif)
 
+## Resources {.smaller}
+
+- Code (`rmarkdown`) for this presentation (https://github.com/SavageDoc/Rviz)
+- Cheat sheets for R (https://www.rstudio.com/resources/cheatsheets/)
+- *R for Data Science* (online) (https://r4ds.had.co.nz/)
+- Leaflet for R (https://rstudio.github.io/leaflet/)
+- *R Markdown: The Definitive Guide* (online) (https://bookdown.org/yihui/rmarkdown/)
+- *Mastering Shiny* (online) (https://mastering-shiny.org/index.html)
+- Data, Code and Visualisation (blog by `highcharter` author, Joshua Kunst) (https://jkunst.com/blog/)
+
 # Thank you
 
 # Questions?
 
-## Resources {.smaller}
-
-- [Code (`rmarkdown`) for this presentation](https://github.com/SavageDoc/Rviz)
-- [Cheat sheets for R](https://www.rstudio.com/resources/cheatsheets/)
-- [*R for Data Science* (online)](https://r4ds.had.co.nz/)
-- [Leaflet for R](https://rstudio.github.io/leaflet/)
-- [*R Markdown: The Definitive Guide* (online)](https://bookdown.org/yihui/rmarkdown/)
-- [*Mastering Shiny* (online)](https://mastering-shiny.org/index.html)
-- [Data, Code and Visualisation (blog by `highcharter` author, Joshua Kunst)](https://jkunst.com/blog/)
 
 
 
