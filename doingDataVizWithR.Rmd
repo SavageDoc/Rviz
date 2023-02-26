@@ -37,11 +37,13 @@ library( forecast )
 library( DT )
 # sparkline for summary information
 library( sparkline )
+# sf to preserve sf class in tidyverse verbs
+library( sf )
 
 ## Data load ----
 # ASGS for SA3/SA4 access for Australian geography
 # NB: I've sourced the data rather than loading the package
-sa4_2016 <- ASGS::SA4_2016
+sa4_2016 <- absmapsdata::sa42016
 
 # Weekly wage indices ----
 # SA4
@@ -55,22 +57,22 @@ jobsSA4 <- read_excel( './jobReport.xlsx'
   mutate( Date=as.Date( as.numeric( Date )
                         , origin=lubridate::ymd( '1899-12-30'))) %>%
   separate( State
-            , into=c('STE_CODE16', 'STE_NAME16' )
+            , into=c('state_code_2016', 'state_name_2016' )
             , convert=TRUE ) %>%
   separate( SA4
-            , into=c('SA4_CODE16', 'SA4_NAME16')
+            , into=c('sa4_code_2016', 'sa4_name_2016')
             , extra='merge'
             , convert=TRUE )
 
 # State-level (derived from SA4)
 jobsState <- jobsSA4 %>%
-  group_by( STE_NAME16, Date ) %>%
+  group_by( state_name_2016, Date ) %>%
   summarise( meanIndex=mean( Index )
              , .groups='drop' )
 
 # Australia-wide data
 jobsOz <- jobsState %>%
-  group_by( STE_NAME16='Australia', Date ) %>%
+  group_by( state_name_2016='Australia', Date ) %>%
   summarise( meanIndex=mean( meanIndex ), .groups='drop' )
 jobsSummary <- bind_rows( jobsOz, jobsState )
 
@@ -97,17 +99,18 @@ getPopData <- function( fileName='./popSA2.xls'
                                        , rep( 'skip', 10 ) # Skip the rest of the file.... 
                          ) 
                          # Standardise names
-                         , col_names=c('STE_INDEX16'
-                                       , 'STE_NAME16'
-                                       , 'SA4_INDEX16'
-                                       , 'SA4_NAME16'
+                         , col_names=c('state_code_2016'
+                                       , 'state_name_2016'
+                                       , 'sa4_code_2016'
+                                       , 'sa4_name_2016'
                                        , 'Population' 
                          )
   ) %>%
     # The standard read will go off the bottom of the data to record disclaimer info
     # filter that out, as well as anything with missing info
     filter_all( all_vars( !is.na( . ) ) ) %>%
-    group_by( STE_INDEX16, STE_NAME16, SA4_INDEX16, SA4_NAME16 ) %>%
+    group_by( state_code_2016, state_name_2016
+              , sa4_code_2016, sa4_name_2016 ) %>%
     summarise( Pop=sum( Population, na.rm=TRUE ), .groups='drop' )
   
   return( popData )
@@ -116,9 +119,12 @@ getPopData <- function( fileName='./popSA2.xls'
 # The data are organised by state in different sheets. 
 # Map the above function to read them all...
 sheetIndex <- 2:9
-fullPopData <- map_dfr( sheetIndex, ~getPopData( sheetNum = . ) )
+fullPopData <- map_dfr( sheetIndex, ~getPopData( sheetNum = . ) ) %>%
+                         mutate( across( contains('code') 
+                                                , ~as.character(.) ) )  
+  
 # Augment the sa4_2016 data with the population
-sa4_2016@data <- left_join( sa4_2016@data, fullPopData ) 
+sa4_2016 <- left_join( sa4_2016, fullPopData ) 
 ```
 
 ## Outline {.smaller}
@@ -177,7 +183,7 @@ sa4_2016@data <- left_join( sa4_2016@data, fullPopData )
 - Build plots with a series of layers 
 ```{r ggplotExample}
 firstPlot <- ggplot( data=jobsState ) +
-  geom_line( aes( x=Date, y=meanIndex, colour=STE_NAME16 ) ) +
+  geom_line( aes( x=Date, y=meanIndex, colour=state_name_2016 ) ) +
   geom_line( data=jobsOz, aes( x=Date, y=meanIndex, colour='Australia' ), colour='black', linetype=2, size=2 ) +
   labs( x='Date', y='Wage Index', title='History of wage index by state/territory' ) +
   theme( legend.position='bottom' )
@@ -276,7 +282,7 @@ leafletTile <- leaflet( sa4_2016 ) %>%
                , highlightOptions=highlightOptions( color='white'
                                                     , weight=2
                                                     , bringToFront=TRUE ) 
-               , label=~paste( SA4_NAME16 ) )
+               , label=~paste( sa4_name_2016 ) )
 renderLeaflet( leafletTile )
 ```
 
@@ -285,11 +291,11 @@ renderLeaflet( leafletTile )
 
 ```{r leaflet4, eval=TRUE}
 sa4Data <- sa4_2016
-sa4Data@data <- left_join( sa4Data@data
+sa4Data <- left_join( sa4Data
                            , jobsSA4 %>% 
                              filter( Date==ymd( 20200808 ) ) %>%
-  select( SA4_NAME16, Date, Index )
-, by='SA4_NAME16' )
+  select( sa4_name_2016, Date, Index )
+, by='sa4_name_2016' )
 
 leafletPal <- colorQuantile( 'RdYlGn'
                              , domain=jobsSA4$Index 
@@ -300,7 +306,7 @@ leafletJobs <- leaflet( sa4Data ) %>%
                , highlightOptions=highlightOptions( color='white'
                                                     , weight=2
                                                     , bringToFront=TRUE ) 
-               , label=~paste( SA4_NAME16, ':', round( Index ) )
+               , label=~paste( sa4_name_2016, ':', round( Index ) )
                , fillColor=~leafletPal(Index) )
 
 renderLeaflet( leafletJobs )
@@ -325,8 +331,8 @@ renderLeaflet( leafletJobs )
 ```{r results='hide', comment='', warning=FALSE, message=FALSE}
 # Add a "bigCity" field to our data
 jobsSA4 <- jobsSA4 %>% 
-  mutate( bigCity=(startsWith( SA4_NAME16, 'Melbourne' ) |
-            startsWith( SA4_NAME16 , 'Sydney') ) )
+  mutate( bigCity=(startsWith( sa4_name_2016, 'Melbourne' ) |
+            startsWith( sa4_name_2016 , 'Sydney') ) )
 
 render( input='./stateExample.Rmd'
         , params=list( jobsData=jobsSA4 )
@@ -372,14 +378,14 @@ historicalData <- jobsOz %>%
   filter( Date > ymd( 20210101 ) ) 
 
 model0 <- auto.arima( jobsOz$meanIndex )
-nextData <- data.frame( STE_NAME16='Australia'
+nextData <- data.frame( state_name_2016='Australia'
                         , Date=max( historicalData$Date ) + weeks(1:12)
                         , forecast( model0, h=12 )
                         , Source='Expert' ) %>%
   mutate( meanIndex=Point.Forecast
           , Week=row_number() + nrow( historicalData )
   ) %>%
-  select( STE_NAME16, Date, meanIndex, Source )
+  select( state_name_2016, Date, meanIndex, Source )
 
 plotData <- bind_rows( historicalData, nextData ) %>%
   mutate( Week=row_number() )
@@ -425,7 +431,8 @@ shinyApp( ui =fluidPage(
           )
         )
       ) %>% 
-      hc_tooltip( enabled = FALSE )
+      hc_tooltip( enabled = FALSE ) %>%
+      hc_add_dependency("modules/draggable-points.js")
 
     hc 
   })
@@ -479,13 +486,13 @@ shinyApp( ui =fluidPage(
 ## Data Visualisation
 
 ```{r highcharterExample}
-hc1 <- hchart( sa4Data@data
+hc1 <- hchart( sa4Data
         , type='scatter'
         , hcaes( x=Pop
                  , y=Index
-                 , group=STE_NAME16
-                 , name=STE_NAME16 ) ) %>% 
-  hc_tooltip( pointFormat=paste( '{point.SA4_NAME16} in {point.STE_NAME16}<br/> 
+                 , group=state_name_2016
+                 , name=state_name_2016 ) ) %>% 
+  hc_tooltip( pointFormat=paste( '{point.sa4_name_2016} in {point.state_name_2016}<br/> 
                                  {point.x} is the Population <br/> 
                                  {point.y} is the Job Wage Index'), valueDecimals=2 ) %>% 
   hc_legend( enabled=TRUE )
@@ -508,20 +515,19 @@ hc1 %>% hc_chart( plotBackgroundImage='https://media.giphy.com/media/LqajRC2pU0J
 
 ```{r highchartPokepoints}
 pokemon1 <- pokemon %>% 
-  mutate( fullURL=paste0( "https://raw.githubusercontent.com/phalt/pokeapi/master/data/Pokemon_XY_Sprites/"
-                          , url_image ) )
+  mutate( fullURL=icon_url )
 
-samplePokemon <- sample( pokemon1$fullURL, nrow( sa4Data@data ), replace=FALSE )
+samplePokemon <- pokemon1$fullURL[1:nrow( sa4Data )]
 
-sa4Data@data$pokemarker <- samplePokemon
+sa4Data$pokemarker <- samplePokemon
 
-hcPokemon <- hchart( sa4Data@data
+hcPokemon <- hchart( sa4Data
         , type='scatter'
         , hcaes( x=Pop
                  , y=Index
-                 , color=STE_NAME16
-                 , group=STE_NAME16
-                 , name=STE_NAME16 )
+                 , color=state_name_2016
+                 , group=state_name_2016
+                 , name=state_name_2016 )
         , marker=list( radius=0 )
         ,  dataLabels = list( 
     enabled = TRUE
@@ -531,7 +537,7 @@ hcPokemon <- hchart( sa4Data@data
     # Move the point down to align with the point
     , y=25
     )) %>% 
-  hc_tooltip( pointFormat=paste( '{point.SA4_NAME16} in {point.STE_NAME16}<br/> 
+  hc_tooltip( pointFormat=paste( '{point.sa4_name_2016} in {point.state_name_2016}<br/> 
                                  {point.x} is the Population <br/> 
                                  {point.y} is the Job Wage Index <br/>
                                  '), valueDecimals=2, useHTML=TRUE ) %>% 

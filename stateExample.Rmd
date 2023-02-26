@@ -18,12 +18,12 @@ Below is an example of a `highcharter` graph[^1].
 
 ```{r exPlot, echo=TRUE, warning=FALSE, message=FALSE, results='asis'}
 statePlotData <- params$jobsData %>%
-  group_by( STE_NAME16, Date ) %>%
+  group_by( state_name_2016, Date ) %>%
   summarise( meanIndex=mean( Index ), .groups='drop' )
 
 hcState <- hchart( statePlotData
                    , type='line' 
-                   , hcaes( x=Date, y=meanIndex, group=STE_NAME16 ) ) %>%
+                   , hcaes( x=Date, y=meanIndex, group=state_name_2016 ) ) %>%
   hc_title(text='State-level time series of wage indices' ) %>%
   hc_tooltip( table=TRUE, valueDecimals=2 )
 
@@ -45,7 +45,9 @@ makeStateSlide <- function( stateData
 }
 
 jobsSA4 <- params$jobsData
-subList <- split( jobsSA4, list( jobsSA4$bigCity, jobsSA4$STE_NAME16 ), drop=TRUE )
+subList <- split( jobsSA4, list( jobsSA4$bigCity
+                                 , jobsSA4$state_name_2016 )
+                  , drop=TRUE )
 
 stateRMD <- map( subList, ~makeStateSlide( stateData=. ) )
 

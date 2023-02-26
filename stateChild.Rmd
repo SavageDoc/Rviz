@@ -1,5 +1,5 @@
 ```{r echo=FALSE, warning=FALSE, message=FALSE, comment='', results='asis'}
-cat( '##', ifelse( stateData$bigCity[1], word( stateData$SA4_NAME16[1] ), stateData$STE_NAME16[1] )
+cat( '##', ifelse( stateData$bigCity[1], word( stateData$state_name_2016[1] ), stateData$state_name_2016[1] )
        , '\n')
 
 # Make a data table (DT) with the latest info and a sparkline historical graph
@@ -7,7 +7,7 @@ minIndex <- min( stateData$Index )
 maxIndex <- max( stateData$Index )
 
 dtData <- stateData %>%
-  group_by( SA4_NAME16 ) %>%
+  group_by( sa4_name_2016 ) %>%
   summarise( currentIndex=last( Index, order_by=Date )
              , historicalIndex=spk_chr( Index
                                         , type='line'
